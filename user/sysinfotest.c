@@ -125,8 +125,11 @@ main(int argc, char *argv[])
 {
   printf("sysinfotest: start\n");
   testcall();
+  printf("1");
   testmem();
+  printf("2");
   testproc();
+  printf("3");
   printf("sysinfotest: OK\n");
   exit(0);
 }
