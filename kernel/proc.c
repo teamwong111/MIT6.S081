@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "fcntl.h"
 
 struct cpu cpus[NCPU];
 
@@ -134,6 +135,7 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  memset(&p->vmas, 0, sizeof(p->vmas));
   return p;
 }
 
@@ -302,6 +304,13 @@ fork(void)
 
   np->state = RUNNABLE;
 
+  for(int i = 0; i < PROC_VMAS; i++) {
+    if(p->vmas[i].valid) {
+      memmove(&np->vmas[i], &p->vmas[i], sizeof(p->vmas[i]));
+      filedup(p->vmas[i].f);
+    }
+  }
+
   release(&np->lock);
 
   return pid;
@@ -350,6 +359,11 @@ exit(int status)
       struct file *f = p->ofile[fd];
       fileclose(f);
       p->ofile[fd] = 0;
+    }
+  }
+  for(int i = 0; i < PROC_VMAS; i++) {
+    if(p->vmas[i].valid) {
+      handle_munmap(i, p->vmas[i].addr, p->vmas[i].length);
     }
   }
 
